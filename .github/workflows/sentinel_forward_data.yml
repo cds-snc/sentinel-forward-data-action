@@ -15,7 +15,10 @@ jobs:
   send-data-to-sentinel:
     runs-on: ubuntu-latest
     steps:
-      - uses: cds-snc/sentinel-forward-data-action@main
+      - uses: actions/checkout@master
+      - name: Self test
+        id: selftest
+        uses: cds-snc/sentinel-forward-data-action@main
 	      with:
           filePath: ${{ inputs.file_path }}
 	        inputData: ${{ inputs.log_type }}
