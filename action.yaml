@@ -1,0 +1,27 @@
+name: 'Forward github action data to Sentinel'
+description: 'Import data from a previous action into Microsoft Sentinel tables.'
+inputs:
+  filesPath:
+    description: 'Folder to import into the workspace'
+    required: false
+    default: '.sentinel'
+  inputData:
+    description: 'Data from a previous action to be imported into the worspace'
+    required: false
+    default: null
+  log-analytics-workspace-id:
+    description:  'Workspace Id for the Log Analytics workspace.'
+    required: true
+    default: '.'
+  log-analytics-workspace-key:
+    description:  'Workspace Key for the Log Analytics workspace.'
+    required: true
+    default: '.'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - --filesPath=${{inputs.filesPath}}
+    - --inputData=${{inputs.inputData}}
+    - --log-analytics-workspace-id=${{ secrets.WORKSPACEID }}
+    - --log-analytics-workspace-key=${{ secrets.WORKSPACEKEY }}

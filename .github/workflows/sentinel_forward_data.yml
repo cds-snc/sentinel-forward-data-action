@@ -1,0 +1,23 @@
+name: Forward github action data to Sentinel  
+on:
+  workflow_dispatch:
+    inputs:
+      file_path: 
+        description: 'The filepath where previous github actions store data'
+        required: false
+        type: string
+      log_data:
+        description: 'The data generated from the previous github action'
+        required: false
+        type: string
+
+jobs:
+  send-data-to-sentinel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: cds-snc/sentinel-forward-data-action@main
+	      with:
+          filePath: ${{ inputs.file_path }}
+	        inputData: ${{ inputs.log_type }}
+          log-analytics-workspace-id: ${{ secrets.LOG_ANALYTICS_WORKSPACE_ID }}
+          log-analytics-workspace-key: ${{ secrets.LOG_ANALYTICS_WORKSPACE_KEY }}
