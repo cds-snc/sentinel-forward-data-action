@@ -1,26 +1,35 @@
-name: Forward github action data to Sentinel  
+name: Forward github action data to Sentinel
 on:
   workflow_dispatch:
-    inputs:
-      file_path: 
-        description: 'The filepath where previous github actions store data'
-        required: false
-        type: string
-      log_data:
-        description: 'The data generated from the previous github action'
-        required: false
-        type: string
+   inputs:
+    file_name:
+      description: 'The name where input data is stored. If file_name is provided, each line is read and sent to Sentinel'
+      required: false
+      type: string
+    input_data:
+      description: 'The data generated from the previous github action that is sent to Sentinel'
+      required: false
+      type: string
 
 jobs:
-  send-data-to-sentinel:
+  generate-data-from-another-action:
     runs-on: ubuntu-latest
+    outputs:
+      output_data: ${{ steps.step1.outputs.input_data}}
+      file_name:   ${{ steps.step2.outputs.file_name}}
     steps:
-      - uses: actions/checkout@master
+      - id: step1
+        run: echo"file_name=file_name.txt" >> $GITHUB_OUTPUT
+      - id: step2
+        run: echo "input_data=Sample output that is to be sent to Sentinel" >> $GITHUB_OUTPUT
+  local-send-data-to-sentinel:
+    runs-on: ubuntu-latest
+    needs: generate-data-from-another-action
+    steps:
+      - uses: actions/checkout@sentinel_data_forwarder
       - name: Self test
         id: selftest
-        uses: cds-snc/sentinel-forward-data-action@main
-	      with:
-          filePath: ${{ inputs.file_path }}
-	        inputData: ${{ inputs.log_type }}
-          log-analytics-workspace-id: ${{ secrets.LOG_ANALYTICS_WORKSPACE_ID }}
-          log-analytics-workspace-key: ${{ secrets.LOG_ANALYTICS_WORKSPACE_KEY }}
+        uses: cds-snc/sentinel-forward-data-action@sentinel_data_forwarder
+        with:
+         file_name: ${{ needs.generate-data-from-another-action.outputs.file_name }}
+         input_data: ${{ needs.generate-data-from-another-action.outputs.output_data }}
