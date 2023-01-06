@@ -50,37 +50,3 @@
 	// Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
 	"remoteUser": "vscode"
 }
-// {
-// 	"name": "sentinel-forward-data-action",
-// 	"image": "mcr.microsoft.com/vscode/devcontainers/base:buster",
-// 	"features": {
-// 		"aws-cli": "latest",
-// 		"docker-from-docker": {
-// 			"version": "latest"
-// 		},
-// 		"node": {
-// 			"version": "lts"
-// 		},
-// 		"terraform": {
-// 			"version": "latest",
-// 			"tflint": "latest",
-// 			"terragrunt": "0.38.4"
-// 		}
-// 	},
-// 	"containerEnv": {
-// 		"SHELL": "/bin/zsh"
-// 	},
-// 	"extensions": [
-// 		"redhat.vscode-yaml",
-// 		"hashicorp.terraform",
-//         "ms-python.python",
-// 		"ms-python.vscode-pylance",
-// 		"github.copilot"
-// 	],
-// 	"remoteUser": "vscode",
-// 	"postCreateCommand": ".devcontainer/postCreateCommand.sh"
-// }
-
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
-// https://github.com/microsoft/vscode-dev-containers/tree/v0.217.4/containers/python-3-postgres
-// Update the VARIANT arg in docker-compose.yml to pick a Python version
