@@ -9,6 +9,10 @@ inputs:
     description: 'Data from a previous action to be imported into the worspace'
     required: false
     default: null
+  log-type:
+    description: 'The sentinel database to import the data into'
+    required: false
+    default: null
   log-analytics-workspace-id:
     description:  'Workspace Id for the Log Analytics workspace.'
     required: true

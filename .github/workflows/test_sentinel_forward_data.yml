@@ -1,15 +1,11 @@
 name: Forward github action data to Sentinel
 on:
-  workflow_dispatch:
-   inputs:
-    file_name:
-      description: 'The filename where previous outputs are stored. The actions reads each line in the file and sends it to Sentinel'
-      required: false
-      type: string
-    input_data:
-      description: 'The data generated from the previous github action'
-      required: false
-      type: string
+  push:
+    branches:
+      - sentinel_data_forwarder 
+  pull_request:
+    branches:
+      - sentinel_data_forwarder 
 
 jobs:
   test-send-data-to-sentinel:
