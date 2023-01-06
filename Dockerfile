@@ -4,7 +4,7 @@ WORKDIR /src
 
 ENV PYTHONPATH /src
 
-COPY requirements.txt . 
+COPY src/requirements.txt . 
 
 RUN pip install -r requirements.txt
 
