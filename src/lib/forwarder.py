@@ -14,18 +14,41 @@ import requests
 logzero.json()
 log = logzero.logger
 
+def convert_to_json(input_data):
+    # Convert the input data to a JSON object
+    try:
+        body = {}
+        body['Message'] = input_data
+        return json.dumps(body)
+    except Exception as e:
+        log.error("Failed to convert input data to JSON")
+        log.error(e)
+        return False
+    
+    
+def process_file_contents(file_name, customer_id, shared_key, input_data, log_type):
+    with open(file_name, 'r') as file:
+        lines = file.readlines()
+    for line in lines:
+        post_data(customer_id, shared_key, convert_to_json(line), log_type)
+    
 
-def handle_log(filePath, input_data, customer_id, shared_key,log_type):
+def handle_log(file_name, input_data, customer_id, shared_key,log_type):
     if customer_id is False or shared_key is False:
         log.error("Missing required environment variables customer_id, log_type, or shared_key")
         return False
 
-    if input_data is False:
-        log.error("Missing required input data")
+    if input_data is False or file_name is False:
+        log.error("Missing required input data or file name")
         return False
-
-    # send the data to Azure Sentinel
-    return post_data(customer_id, shared_key, input_data, log_type)
+    
+    if input_data:
+        # send the data to Azure Sentinel
+        post_data(customer_id, shared_key, convert_to_json(input_data), log_type)
+        
+    if file_name:
+        # process each line in the file and send it to Azure Sentinel
+        process_file_contents(file_name, customer_id, shared_key, input_data, log_type)
 
 
 
@@ -85,10 +108,8 @@ def post_data(customer_id, shared_key, body, log_type):
 
     response = requests.post(uri, data=body, headers=headers)
     if response.status_code >= 200 and response.status_code <= 299:
-        log.info(response.text)
-        #log.info(f"Response code: {response.status_code}, log type: {log_type}")
+        log.info(f"Response code: {response.status_code}, log type: {log_type}")
         return True
     else:
-        log.error(response.text)
-        #log.error(f"Response code: {response.status_code}, log type: {log_type}")
+        log.error(f"Response code: {response.status_code}, log type: {log_type}")
         return False

@@ -1,0 +1,26 @@
+name: Forward github action data to Sentinel
+on:
+  workflow_dispatch:
+   inputs:
+    file_name:
+      description: 'The filename where previous outputs are stored. The actions reads each line in the file and sends it to Sentinel'
+      required: false
+      type: string
+    input_data:
+      description: 'The data generated from the previous github action'
+      required: false
+      type: string
+
+jobs:
+  test-send-data-to-sentinel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Self test
+        id: selftest
+        uses: ./
+        with:
+         file_name: ${{ github.event.inputs.file_name }} 
+         input_data: $ {{github.event.inputs.input_data }} 
+         log-analytics-workspace-id: ${{ secrets.LOG_ANALYTICS_WORKSPACE_ID }}
+         log-analytics-workspace-key: ${{ secrets.LOG_ANALYTICS_WORKSPACE_KEY }} 

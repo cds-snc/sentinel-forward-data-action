@@ -1,7 +1,13 @@
-FROM python:3
+FROM python:latest
 
-COPY requirements.txt /requirements.txt
-RUN pip install -r /requirements.txt
 WORKDIR /src
-COPY action.py ../action.py
-CMD ["python", "/action.py"]
+
+ENV PYTHONPATH /src
+
+COPY requirements.txt . 
+
+RUN pip install -r requirements.txt
+
+COPY . .
+
+CMD ["python", "action.py"]

@@ -1,0 +1,37 @@
+name: Test forward github action data to Sentinel
+on:
+  workflow_dispatch:
+   inputs:
+    file_name:
+      description: 'The name where input data is stored. If file_name is provided, each line is read and sent to Sentinel'
+      required: false
+      type: string
+    input_data:
+      description: 'The data generated from the previous github action that is sent to Sentinel'
+      required: false
+      type: string
+
+jobs:
+  generate-data-from-another-action:
+    runs-on: ubuntu-latest
+    outputs:
+      output_data: ${{ steps.step1.outputs.input_data}}
+      file_name:   ${{ steps.step2.outputs.file_name}}
+    steps:
+      - id: step1
+        run: echo "file_name=file_name.txt" >> $GITHUB_OUTPUT
+      - id: step2
+        run: echo "input_data=Sample output that is to be sent to Sentinel" >> $GITHUB_OUTPUT
+  local-send-data-to-sentinel:
+    runs-on: ubuntu-latest
+    needs: generate-data-from-another-action
+    steps:
+      - uses: actions/checkout@v2
+      - name: Self test
+        id: selftest
+        uses: ./
+        with:
+         file_name: ${{ needs.generate-data-from-another-action.outputs.file_name }}
+         input_data: ${{ needs.generate-data-from-another-action.outputs.output_data }}
+         log-analytics-workspace-id: ${{ secrets.LOG_ANALYTICS_WORKSPACE_ID }}
+         log-analytics-workspace-key: ${{ secrets.LOG_ANALYTICS_WORKSPACE_KEY }}
