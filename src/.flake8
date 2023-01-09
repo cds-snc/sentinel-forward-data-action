@@ -5,6 +5,7 @@
 # In most cases Black follows the rules below, but there are some exceptions
 # E203: whitespace before ':'
 # E501: line too long
+# E402: module level import not at the top of file 
 exclude = venv*, __pycache__, node_modules, cache, migrations, build
 ignore = W503, W504, E203, E501, E402
 max-complexity = 20
