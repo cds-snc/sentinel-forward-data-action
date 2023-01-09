@@ -14,46 +14,72 @@ import requests
 logzero.json()
 log = logzero.logger
 
+# determine if a string is a json object. If it is, it returns True. Otherwise, false is returned. 
+def is_json(myjson):
+  try:
+    json.loads(myjson)
+  except ValueError as e:
+    return False
+  return True
+
+
+# Convert the input data to a JSON object
 def convert_to_json(input_data):
-    # Convert the input data to a JSON object
-    try:
-        body = {}
-        body['Message'] = input_data
-        return json.dumps(body)
-    except Exception as e:
-        log.error("Failed to convert input data to JSON")
-        log.error(e)
-        return False
+    if is_json(input_data):
+        return input_data
+    else:
+        try:
+            body = {}
+            body['Message'] = input_data
+            return json.dumps(body)
+        except Exception as e:
+            log.error("Failed to convert input data to JSON")
+            log.error(e)
+            return False
     
     
-def process_file_contents(file_name, customer_id, shared_key, input_data, log_type):
+    
+def process_file_contents(file_name, log_analytics_workspace_id, log_analytics_workspace_key, input_data, log_type):
     with open(file_name, 'r') as file:
         lines = file.readlines()
     for line in lines:
-        post_data(customer_id, shared_key, convert_to_json(line), log_type)
+        post_data(log_analytics_workspace_id, log_analytics_workspace_key, convert_to_json(line), log_type)
     
 
-def handle_log(file_name, input_data, customer_id, shared_key,log_type):
-    if customer_id is False or shared_key is False:
-        log.error("Missing required environment variables customer_id, log_type, or shared_key")
+def handle_log(file_name, input_data, log_analytics_workspace_id, log_analytics_workspace_key,log_type):    
+    if log_analytics_workspace_id is False or log_analytics_workspace_key is False:
+        log.error("Missing required environment variables log_analytics_workspace_id  or log_analytics_workspace_key")
         return False
 
-    if input_data is False or file_name is False:
+    if log_type is False:
+        log.error("Missing required log type for Sentinel")
+        return False
+
+    if input_data is False and file_name is False:
         log.error("Missing required input data or file name")
         return False
     
+    
     if input_data:
         # send the data to Azure Sentinel
-        post_data(customer_id, shared_key, convert_to_json(input_data), log_type)
+        post_data(log_analytics_workspace_id, log_analytics_workspace_key, convert_to_json(input_data), log_type)
+        # return True
+        
         
     if file_name:
-        # process each line in the file and send it to Azure Sentinel
-        process_file_contents(file_name, customer_id, shared_key, input_data, log_type)
+        try:
+            # process each line in the file and send it to Azure Sentinel
+            process_file_contents(file_name, log_analytics_workspace_id, log_analytics_workspace_key, input_data, log_type)
+            # return True
+        except Exception as e:
+            print(e)
+            return False     
+    return True
 
 
 
 def build_signature(
-    customer_id, shared_key, date, content_length, method, content_type, resource
+    log_analytics_workspace_id, log_analytics_workspace_key, date, content_length, method, content_type, resource
 ):
     x_headers = "x-ms-date:" + date
     string_to_hash = (
@@ -68,23 +94,23 @@ def build_signature(
         + resource
     )
     bytes_to_hash = bytes(string_to_hash, encoding="utf-8")
-    decoded_key = base64.b64decode(shared_key)
+    decoded_key = base64.b64decode(log_analytics_workspace_key)
     encoded_hash = base64.b64encode(
         hmac.new(decoded_key, bytes_to_hash, digestmod=hashlib.sha256).digest()
     ).decode()
-    authorization = "SharedKey {}:{}".format(customer_id, encoded_hash)
+    authorization = "SharedKey {}:{}".format(log_analytics_workspace_id, encoded_hash)
     return authorization
 
 
-def post_data(customer_id, shared_key, body, log_type):
+def post_data(log_analytics_workspace_id, log_analytics_workspace_key, body, log_type):
     method = "POST"
     content_type = "application/json"
     resource = "/api/logs"
     rfc1123date = datetime.datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
     content_length = len(body)
     signature = build_signature(
-        customer_id,
-        shared_key,
+        log_analytics_workspace_id,
+        log_analytics_workspace_key,
         rfc1123date,
         content_length,
         method,
@@ -93,7 +119,7 @@ def post_data(customer_id, shared_key, body, log_type):
     )
     uri = (
         "https://"
-        + customer_id
+        + log_analytics_workspace_id
         + ".ods.opinsights.azure.com"
         + resource
         + "?api-version=2016-04-01"
