@@ -4,9 +4,9 @@ import os
 if __name__ == "__main__":
 
     # get all the passed in variables
-    fileName = os.environ.get("INPUT_FILE_NAME", False)
-    inputData = os.environ.get("INPUT_INPUT_DATA", False)
-    logType = os.environ.get("INPUT_LOG_TYPE", "GitHubAction_CL")
+    file_name = os.environ.get("INPUT_FILE_NAME", False)
+    input_data = os.environ.get("INPUT_INPUT_DATA", False)
+    log_type = os.environ.get("INPUT_LOG_TYPE", "GitHubAction_CL")
     log_analytics_workspace_id = os.environ.get(
         "INPUT_LOG_ANALYTICS_WORKSPACE_ID", False
     )
@@ -17,11 +17,11 @@ if __name__ == "__main__":
     try:
         # call handle_log function to send data to Sentinel
         handle_log(
-            fileName,
-            inputData,
+            file_name,
+            input_data,
             log_analytics_workspace_id,
             log_analytics_workspace_key,
-            logType,
+            log_type,
         )
     except Exception as e:
         print(e)

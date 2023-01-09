@@ -1,0 +1,39 @@
+name: Lint, format and test code
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - src/**
+      - .github/workflows/ci_code.yml
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install dev dependencies
+        working-directory: ./src
+        run: make install-dev
+
+      - name: Install dependencies
+        working-directory: ./src
+        run: make install
+
+      - name: Lint
+        working-directory: ./src
+        run: make lint-ci
+
+      - name: Format
+        working-directory: ./src
+        run: make fmt-ci
+
+      - name: Test
+        working-directory: ./src
+        run: make test
