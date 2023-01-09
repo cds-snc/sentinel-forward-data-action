@@ -1,12 +1,8 @@
 import base64
 import datetime
-import gzip
 import hashlib
 import hmac
-import io
 import json
-import os
-import re
 
 import logzero
 import requests
@@ -14,13 +10,15 @@ import requests
 logzero.json()
 log = logzero.logger
 
-# determine if a string is a json object. If it is, it returns True. Otherwise, false is returned. 
+
+# Determine if a string is a json object. If it is, it returns True. Otherwise, false is returned.
 def is_json(myjson):
-  try:
-    json.loads(myjson)
-  except ValueError as e:
-    return False
-  return True
+    try:
+        json.loads(myjson)
+    except ValueError as e:
+        print(e)
+        return False
+    return True
 
 
 # Convert the input data to a JSON object
@@ -30,25 +28,45 @@ def convert_to_json(input_data):
     else:
         try:
             body = {}
-            body['Message'] = input_data
+            body["Message"] = input_data
             return json.dumps(body)
         except Exception as e:
             log.error("Failed to convert input data to JSON")
             log.error(e)
             return False
-    
-    
-    
-def process_file_contents(file_name, log_analytics_workspace_id, log_analytics_workspace_key, input_data, log_type):
-    with open(file_name, 'r') as file:
+
+
+# Process file contents. Reach each line of file_line and call post_data function to send data to Sentinel.
+def process_file_contents(
+    file_name,
+    log_analytics_workspace_id,
+    log_analytics_workspace_key,
+    input_data,
+    log_type,
+):
+    with open(file_name, "r") as file:
         lines = file.readlines()
     for line in lines:
-        post_data(log_analytics_workspace_id, log_analytics_workspace_key, convert_to_json(line), log_type)
-    
+        post_data(
+            log_analytics_workspace_id,
+            log_analytics_workspace_key,
+            convert_to_json(line),
+            log_type,
+        )
 
-def handle_log(file_name, input_data, log_analytics_workspace_id, log_analytics_workspace_key,log_type):    
+
+# Handle data sent by the github action. Process input data and filename if it is provided.
+def handle_log(
+    file_name,
+    input_data,
+    log_analytics_workspace_id,
+    log_analytics_workspace_key,
+    log_type,
+):
     if log_analytics_workspace_id is False or log_analytics_workspace_key is False:
-        log.error("Missing required environment variables log_analytics_workspace_id  or log_analytics_workspace_key")
+        log.error(
+            "Missing required environment variables log_analytics_workspace_id  or log_analytics_workspace_key"
+        )
         return False
 
     if log_type is False:
@@ -58,28 +76,41 @@ def handle_log(file_name, input_data, log_analytics_workspace_id, log_analytics_
     if input_data is False and file_name is False:
         log.error("Missing required input data or file name")
         return False
-    
-    
+
     if input_data:
         # send the data to Azure Sentinel
-        post_data(log_analytics_workspace_id, log_analytics_workspace_key, convert_to_json(input_data), log_type)
-        # return True
-        
-        
+        post_data(
+            log_analytics_workspace_id,
+            log_analytics_workspace_key,
+            convert_to_json(input_data),
+            log_type,
+        )
+
     if file_name:
         try:
             # process each line in the file and send it to Azure Sentinel
-            process_file_contents(file_name, log_analytics_workspace_id, log_analytics_workspace_key, input_data, log_type)
-            # return True
+            process_file_contents(
+                file_name,
+                log_analytics_workspace_id,
+                log_analytics_workspace_key,
+                input_data,
+                log_type,
+            )
         except Exception as e:
             print(e)
-            return False     
+            return False
     return True
 
 
-
+# Build the signature and return the authorization
 def build_signature(
-    log_analytics_workspace_id, log_analytics_workspace_key, date, content_length, method, content_type, resource
+    log_analytics_workspace_id,
+    log_analytics_workspace_key,
+    date,
+    content_length,
+    method,
+    content_type,
+    resource,
 ):
     x_headers = "x-ms-date:" + date
     string_to_hash = (
@@ -102,6 +133,7 @@ def build_signature(
     return authorization
 
 
+# Send the data to Sentinel
 def post_data(log_analytics_workspace_id, log_analytics_workspace_key, body, log_type):
     method = "POST"
     content_type = "application/json"

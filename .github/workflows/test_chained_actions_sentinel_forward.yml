@@ -34,5 +34,5 @@ jobs:
          file_name: ${{ needs.generate-data-from-another-action.outputs.file_name }}
          input_data: ${{ needs.generate-data-from-another-action.outputs.output_data }}
          log_type: ${{ needs.generate-data-from-another-action.outputs.log_type}}
-         log-analytics-workspace-id: ${{ secrets.LOG_ANALYTICS_WORKSPACE_ID }}
-         log-analytics-workspace-key: ${{ secrets.LOG_ANALYTICS_WORKSPACE_KEY }}
+         log_analytics_workspace_id: ${{ secrets.LOG_ANALYTICS_WORKSPACE_ID }}
+         log_analytics_workspace_key: ${{ secrets.LOG_ANALYTICS_WORKSPACE_KEY }}
