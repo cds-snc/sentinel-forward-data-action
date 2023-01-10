@@ -17,14 +17,13 @@ jobs:
       - name: a11y scan of website
         uses: a11ywatch/github-action@v1.12.1
         with:
-          WEBSITE_URL: ${{ secrets.WEBSITE_URL }}
+          WEBSITE_URL:  https://secret.cdssandbox.xyz 
           SUBDOMAINS: true
           TLD: true
           FAIL_ERRORS_COUNT: 15
           LIST: true
           FIX: true
           UPGRADE: false
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
     send-data-to-sentinel:
      runs-on: ubuntu-latest
      needs: run-a11ywatch
