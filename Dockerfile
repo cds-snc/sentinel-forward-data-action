@@ -10,4 +10,4 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-CMD ["python", "src/action.py"]
+CMD ["python", "/src/action.py"]
