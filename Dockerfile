@@ -2,17 +2,13 @@ FROM python:latest
 
 RUN pwd && ls
 
-WORKDIR src
+ADD src .
 
-ENV PYTHONPATH src
+COPY . .
 
 RUN pwd && ls
 
-COPY src/requirements.txt . 
-
 RUN pip install -r requirements.txt
-
-COPY . . 
 
 RUN pwd && ls
 
