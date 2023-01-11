@@ -1,0 +1,25 @@
+name: Test send data to sentinel 
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+jobs:
+  send-data-to-sentinel:
+     runs-on: ubuntu-latest
+     steps:
+       - uses: actions/checkout@v2
+       - name: Test chained actions 
+         id: send_data
+         uses: cds-snc/sentinel-forward-data-action@fix/external_usage_fails
+         with:
+          input_data: "this is a a test"
+          log_type: "TestData_CL" 
+          log_analytics_workspace_id: ${{ secrets.LOG_ANALYTICS_WORKSPACE_ID }}
+          log_analytics_workspace_key: ${{ secrets.LOG_ANALYTICS_WORKSPACE_KEY }}
