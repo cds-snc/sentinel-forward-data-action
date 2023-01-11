@@ -1,13 +1,15 @@
 FROM python:latest
 
-WORKDIR /src
+WORKDIR /app
 
-ENV PYTHONPATH /src
+ENV PYTHONPATH /app
 
-COPY src/requirements.txt . 
+COPY src/requirements.txt /app
 
-RUN pip install -r requirements.txt
+RUN pip install -r /app/requirements.txt
 
-COPY . .
+ADD src /app
 
-CMD ["python", "src/action.py"]
+COPY . /app
+
+CMD ["python", "/app/src/action.py"]
