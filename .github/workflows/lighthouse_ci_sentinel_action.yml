@@ -23,6 +23,7 @@ jobs:
         id: sentinel-data-forward 
         uses: cds-snc/sentinel-forward-data-action@main
         with:
+         file_name: ${{ steps.LHCIAction.outputs.manifest.jsonPath }}
          input_data: '{ "links": ${{steps.LHCIAction.outputs.links}}, "manifest": ${{steps.LHCIAction.outputs.manifest}} }'
          log_type: "TestData_CL"
          log_analytics_workspace_id: ${{ secrets.LOG_ANALYTICS_WORKSPACE_ID }}
