@@ -26,6 +26,7 @@ jobs:
       - name: get direcotry listing
         run: |
           ls '${{steps.lhci_action.outputs.resultsPath}}'
+          cat '${{ steps.get_json_file.outputs.file_name }}'
 
       - name: Send data to sentinel action
         id: sentinel-data-forward
