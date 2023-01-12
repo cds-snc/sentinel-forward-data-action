@@ -18,9 +18,14 @@ jobs:
         with:
          urls: |
           https://secret.cdssandbox.xyz/
+
       - name: Get json file 
         id: get_json_file 
         run: echo "file_name=$(jq -c '.[].jsonPath' <<< '${{steps.lhci_action.outputs.manifest}}')" >> $GITHUB_OUTPUT
+
+      - name: get direcotry listing
+        run: |
+          ls '${{steps.lhci_action.outputs.resultsPath}}'
 
       - name: Send data to sentinel action
         id: sentinel-data-forward
