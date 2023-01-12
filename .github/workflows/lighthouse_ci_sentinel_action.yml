@@ -21,9 +21,7 @@ jobs:
 
       - name: Get json file 
         id: get_json_file 
-        run: |
-          echo '${{steps.lhci_action.outputs.manifest}}' | sed -r 's/"//g'
-          echo "file_name=$(jq -c '.[].jsonPath' <<< '${{steps.lhci_action.outputs.manifest}}')" >> $GITHUB_OUTPUT
+        run: echo "file_name=$(jq -c '.[].jsonPath' <<< '${{steps.lhci_action.outputs.manifest}}' | sed -r 's/"//g')" >> $GITHUB_OUTPUT
 
       - name: get direcotry listing
         run: |
