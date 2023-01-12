@@ -23,10 +23,8 @@ jobs:
         id: get_json_file 
         run: echo "file_name=$(jq -c '.[].jsonPath' <<< '${{steps.lhci_action.outputs.manifest}}' | sed -r 's/"//g')" >> $GITHUB_OUTPUT
 
-      - name: get direcotry listing
-        run: |
-          ls '${{steps.lhci_action.outputs.resultsPath}}'
-          cat '${{ steps.get_json_file.outputs.file_name }}'
+      - name: get report contents 
+        run: cat '${{ steps.get_json_file.outputs.file_name }}'
 
       - name: Send data to sentinel action
         id: sentinel-data-forward
