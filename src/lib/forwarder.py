@@ -23,12 +23,12 @@ def is_json(myjson):
 
 # Convert the input data to a JSON object
 def convert_to_json(input_data):
+    body = {}
+    body["Message"] = input_data
     if is_json(input_data):
-        return input_data
+        return body
     else:
         try:
-            body = {}
-            body["Message"] = input_data
             return json.dumps(body)
         except Exception as e:
             log.error("Failed to convert input data to JSON")
