@@ -50,7 +50,7 @@ def process_file_contents(
             post_data(
                 log_analytics_workspace_id,
                 log_analytics_workspace_key,
-                json_object,
+                convert_to_json(json_object),
                 log_type,
             )
         # otherwise process each line in the file
