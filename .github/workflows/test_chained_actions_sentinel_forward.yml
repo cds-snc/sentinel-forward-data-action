@@ -60,7 +60,7 @@ jobs:
         id: selftest_json_multiline
         uses: ./
         with:
-         file_name: /data/test_file_muline.json 
+         file_name: /app/src/tests/data/test_file_muline.json 
          log_type: ${{ needs.generate-data-from-another-action.outputs.log_type}}
          log_analytics_workspace_id: ${{ secrets.LOG_ANALYTICS_WORKSPACE_ID }}
          log_analytics_workspace_key: ${{ secrets.LOG_ANALYTICS_WORKSPACE_KEY }}
