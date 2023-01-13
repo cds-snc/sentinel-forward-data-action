@@ -110,13 +110,65 @@ def test_handle_log_succeeds_with_input_data_json(mock_post_data):
     assert mock_post_data.call_count == 1
 
 
-# test with reading input from file
+# test with reading input from file as text
 @patch("src.lib.forwarder.post_data")
-def test_handle_log_input_file_provided(mock_post_data):
+def test_handle_log_input_file_text_provided(mock_post_data):
     mock_post_data.return_value = True
     assert (
         handle_log(
             file_name="tests/data/test_file.txt",
+            input_data=False,
+            log_analytics_workspace_id="foo",
+            log_analytics_workspace_key="bGBavCBrZXr=",
+            log_type="foo",
+        )
+        is True
+    )
+    # assert that the number of post_data calls are equal to the number of lines in the test file
+    assert mock_post_data.call_count == sum(1 for _ in open("tests/data/test_file.txt"))
+
+
+# test with reading input from file as json object. Json data is on 1 line only
+@patch("src.lib.forwarder.post_data")
+def test_handle_log_input_file_json_provided(mock_post_data):
+    mock_post_data.return_value = True
+    assert (
+        handle_log(
+            file_name="tests/data/test_file.json",
+            input_data=False,
+            log_analytics_workspace_id="foo",
+            log_analytics_workspace_key="bGBavCBrZXr=",
+            log_type="foo",
+        )
+        is True
+    )
+    assert mock_post_data.call_count == 1
+
+
+# test with reading input from file as json object. Json data is on multiple lines
+@patch("src.lib.forwarder.post_data")
+def test_handle_log_input_file_json_multiline_provided(mock_post_data):
+    mock_post_data.return_value = True
+    assert (
+        handle_log(
+            file_name="tests/data/test_file_muline.json",
+            input_data=False,
+            log_analytics_workspace_id="foo",
+            log_analytics_workspace_key="bGBavCBrZXr=",
+            log_type="foo",
+        )
+        is True
+    )
+    assert mock_post_data.call_count == 1
+
+
+# test with reading input from file as jsonl file
+@patch("src.lib.forwarder.post_data")
+def test_handle_log_input_file_jsonl_provided(mock_post_data):
+    mock_post_data.return_value = True
+    assert (
+        handle_log(
+            file_name="tests/data/test_file.jsonl",
             input_data=False,
             log_analytics_workspace_id="foo",
             log_analytics_workspace_key="bGBavCBrZXr=",
