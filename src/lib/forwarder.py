@@ -3,7 +3,7 @@ import datetime
 import hashlib
 import hmac
 import json
-
+import os
 import logzero
 import requests
 
@@ -25,6 +25,7 @@ def is_json(myjson):
 def convert_to_json(input_data):
     body = {}
     body["Message"] = input_data
+    
     if is_json(input_data):
         return body
     else:
@@ -41,7 +42,6 @@ def process_file_contents(
     file_name,
     log_analytics_workspace_id,
     log_analytics_workspace_key,
-    input_data,
     log_type,
 ):
     with open(file_name, "r") as file:
@@ -64,6 +64,9 @@ def process_file_contents(
                     convert_to_json(line),
                     log_type,
                 )
+        # log the file name and size
+        log.info(f"File name: {file_name}, file size: {os.path.getsize(file_name)}" )
+
 
 
 # Handle data sent by the github action. Process input data and filename if it is provided.
@@ -104,7 +107,6 @@ def handle_log(
                 file_name,
                 log_analytics_workspace_id,
                 log_analytics_workspace_key,
-                input_data,
                 log_type,
             )
         except Exception as e:
@@ -160,6 +162,7 @@ def post_data(log_analytics_workspace_id, log_analytics_workspace_key, body, log
         content_type,
         resource,
     )
+    log.info(f"Body sent: {body}, length: {content_length}")
     uri = (
         "https://"
         + log_analytics_workspace_id
