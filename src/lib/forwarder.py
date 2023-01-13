@@ -46,11 +46,11 @@ def process_file_contents(
     with open(file_name, "r") as file:
         # see if it is a json file object and the filename has a .json extension. The json object can be on 1 line or on multiple lines
         if file_name.endswith(".json"):
-            json_object = json.loads(file.read())
+            json_object = json.load(file)
             post_data(
                 log_analytics_workspace_id,
                 log_analytics_workspace_key,
-                convert_to_json(json_object),
+                json.dumps(json_object),
                 log_type,
             )
         # otherwise process each line in the file
