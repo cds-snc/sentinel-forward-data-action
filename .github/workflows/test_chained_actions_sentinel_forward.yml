@@ -37,7 +37,7 @@ jobs:
          log_analytics_workspace_id: ${{ secrets.LOG_ANALYTICS_WORKSPACE_ID }}
          log_analytics_workspace_key: ${{ secrets.LOG_ANALYTICS_WORKSPACE_KEY }}
 
-send-data-to-sentinel_json:
+  send-data-to-sentinel_json:
     runs-on: ubuntu-latest
     needs: generate-data-from-another-action
     steps:
@@ -51,8 +51,7 @@ send-data-to-sentinel_json:
          log_analytics_workspace_id: ${{ secrets.LOG_ANALYTICS_WORKSPACE_ID }}
          log_analytics_workspace_key: ${{ secrets.LOG_ANALYTICS_WORKSPACE_KEY }}
 
-
-send-data-to-sentinel_json_multiline:
+  send-data-to-sentinel_json_multiline:
     runs-on: ubuntu-latest
     needs: generate-data-from-another-action
     steps:
@@ -67,7 +66,7 @@ send-data-to-sentinel_json_multiline:
          log_analytics_workspace_key: ${{ secrets.LOG_ANALYTICS_WORKSPACE_KEY }}
 
 
-send-data-to-sentinel_jsonl:
+  send-data-to-sentinel_jsonl:
     runs-on: ubuntu-latest
     needs: generate-data-from-another-action
     steps:
