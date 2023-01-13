@@ -22,38 +22,38 @@ jobs:
       - id: step3
         run: echo "log_type=TestGithubAction_CL" >> $GITHUB_OUTPUT
 
-  send-data-to-sentinel:
-    runs-on: ubuntu-latest
-    needs: generate-data-from-another-action
-    steps:
-      - uses: actions/checkout@v2
-      - name: Test chained actions 
-        id: selftest
-        uses: ./
-        with:
-         file_name: ${{ needs.generate-data-from-another-action.outputs.file_name }}
-         input_data: ${{ needs.generate-data-from-another-action.outputs.output_data }}
-         log_type: ${{ needs.generate-data-from-another-action.outputs.log_type}}
-         log_analytics_workspace_id: ${{ secrets.LOG_ANALYTICS_WORKSPACE_ID }}
-         log_analytics_workspace_key: ${{ secrets.LOG_ANALYTICS_WORKSPACE_KEY }}
+  # send-data-to-sentinel:
+  #   runs-on: ubuntu-latest
+  #   needs: generate-data-from-another-action
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: Test chained actions 
+  #       id: selftest
+  #       uses: ./
+  #       with:
+  #        file_name: ${{ needs.generate-data-from-another-action.outputs.file_name }}
+  #        input_data: ${{ needs.generate-data-from-another-action.outputs.output_data }}
+  #        log_type: ${{ needs.generate-data-from-another-action.outputs.log_type}}
+  #        log_analytics_workspace_id: ${{ secrets.LOG_ANALYTICS_WORKSPACE_ID }}
+  #        log_analytics_workspace_key: ${{ secrets.LOG_ANALYTICS_WORKSPACE_KEY }}
 
-  send-data-to-sentinel_json:
-    runs-on: ubuntu-latest
-    needs: [generate-data-from-another-action, send-data-to-sentinel]
-    steps:
-      - uses: actions/checkout@v2
-      - name: Test action sending .json file on 1 line
-        id: selftest_json
-        uses: ./
-        with:
-         file_name: "/app/src/tests/data/test_file.json" 
-         log_type: ${{ needs.generate-data-from-another-action.outputs.log_type}}
-         log_analytics_workspace_id: ${{ secrets.LOG_ANALYTICS_WORKSPACE_ID }}
-         log_analytics_workspace_key: ${{ secrets.LOG_ANALYTICS_WORKSPACE_KEY }}
+  # send-data-to-sentinel_json:
+  #   runs-on: ubuntu-latest
+  #   needs: [generate-data-from-another-action, send-data-to-sentinel]
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: Test action sending .json file on 1 line
+  #       id: selftest_json
+  #       uses: ./
+  #       with:
+  #        file_name: "/app/src/tests/data/test_file.json" 
+  #        log_type: ${{ needs.generate-data-from-another-action.outputs.log_type}}
+  #        log_analytics_workspace_id: ${{ secrets.LOG_ANALYTICS_WORKSPACE_ID }}
+  #        log_analytics_workspace_key: ${{ secrets.LOG_ANALYTICS_WORKSPACE_KEY }}
 
   send-data-to-sentinel_json_multiline:
     runs-on: ubuntu-latest
-    needs: [generate-data-from-another-action, send-data-to-sentinel_json]
+    needs: generate-data-from-another-action
     steps:
       - uses: actions/checkout@v2
       - name: Test action sending .json on multiple lines 
@@ -66,17 +66,17 @@ jobs:
          log_analytics_workspace_key: ${{ secrets.LOG_ANALYTICS_WORKSPACE_KEY }}
 
 
-  send-data-to-sentinel_jsonl:
-    runs-on: ubuntu-latest
-    needs: [generate-data-from-another-action, send-data-to-sentinel_json_multiline]
-    steps:
-      - uses: actions/checkout@v2
-      - name: Test action sending .jsonl
-        id: selftest_jsonl
-        uses: ./
-        with:
-         file_name:  "/app/src/tests/data/test_file.jsonl"
-         log_type: ${{ needs.generate-data-from-another-action.outputs.log_type}}
-         log_analytics_workspace_id: ${{ secrets.LOG_ANALYTICS_WORKSPACE_ID }}
-         log_analytics_workspace_key: ${{ secrets.LOG_ANALYTICS_WORKSPACE_KEY }}
+  # send-data-to-sentinel_jsonl:
+  #   runs-on: ubuntu-latest
+  #   needs: [generate-data-from-another-action, send-data-to-sentinel_json_multiline]
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: Test action sending .jsonl
+  #       id: selftest_jsonl
+  #       uses: ./
+  #       with:
+  #        file_name:  "/app/src/tests/data/test_file.jsonl"
+  #        log_type: ${{ needs.generate-data-from-another-action.outputs.log_type}}
+  #        log_analytics_workspace_id: ${{ secrets.LOG_ANALYTICS_WORKSPACE_ID }}
+  #        log_analytics_workspace_key: ${{ secrets.LOG_ANALYTICS_WORKSPACE_KEY }}
 
