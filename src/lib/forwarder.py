@@ -25,7 +25,6 @@ def is_json(myjson):
 def convert_to_json(input_data):
     body = {}
     body["Message"] = input_data
-    
     if is_json(input_data):
         return body
     else:
@@ -65,8 +64,7 @@ def process_file_contents(
                     log_type,
                 )
         # log the file name and size
-        log.info(f"File name: {file_name}, file size: {os.path.getsize(file_name)}" )
-
+        log.info(f"File name: {file_name}, file size: {os.path.getsize(file_name)}")
 
 
 # Handle data sent by the github action. Process input data and filename if it is provided.
