@@ -3,7 +3,7 @@ import datetime
 import hashlib
 import hmac
 import json
-
+import os
 import logzero
 import requests
 
@@ -41,18 +41,30 @@ def process_file_contents(
     file_name,
     log_analytics_workspace_id,
     log_analytics_workspace_key,
-    input_data,
     log_type,
 ):
     with open(file_name, "r") as file:
-        lines = file.readlines()
-    for line in lines:
-        post_data(
-            log_analytics_workspace_id,
-            log_analytics_workspace_key,
-            convert_to_json(line),
-            log_type,
-        )
+        # see if it is a json file object and the filename has a .json extension. The json object can be on 1 line or on multiple lines
+        if file_name.endswith(".json"):
+            json_object = json.load(file)
+            post_data(
+                log_analytics_workspace_id,
+                log_analytics_workspace_key,
+                json.dumps(json_object),
+                log_type,
+            )
+        # otherwise process each line in the file
+        else:
+            lines = file.readlines()
+            for line in lines:
+                post_data(
+                    log_analytics_workspace_id,
+                    log_analytics_workspace_key,
+                    convert_to_json(line),
+                    log_type,
+                )
+        # log the file name and size
+        log.info(f"File name: {file_name}, file size: {os.path.getsize(file_name)}")
 
 
 # Handle data sent by the github action. Process input data and filename if it is provided.
@@ -93,7 +105,6 @@ def handle_log(
                 file_name,
                 log_analytics_workspace_id,
                 log_analytics_workspace_key,
-                input_data,
                 log_type,
             )
         except Exception as e:
@@ -149,6 +160,7 @@ def post_data(log_analytics_workspace_id, log_analytics_workspace_key, body, log
         content_type,
         resource,
     )
+    log.info(f"Body sent: {body}, length: {content_length}")
     uri = (
         "https://"
         + log_analytics_workspace_id
