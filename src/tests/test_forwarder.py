@@ -160,7 +160,7 @@ def test_handle_log_input_file_json_provided_latin(mock_post_data):
         is True
     )
     assert mock_post_data.call_count == 1
-    assert mock_post_data.call_args[0][2] == '{"foo": "?"}'
+    assert mock_post_data.call_args[0][2] == '{"foo": "bar?baz"}'
 
 
 # test with reading input from file as json object. Json data is on multiple lines
