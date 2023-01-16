@@ -145,6 +145,24 @@ def test_handle_log_input_file_json_provided(mock_post_data):
     assert mock_post_data.call_count == 1
 
 
+# test with reading input from file as json object. Json data is on 1 line only, encoded in latin
+@patch("src.lib.forwarder.post_data")
+def test_handle_log_input_file_json_provided_latin(mock_post_data):
+    mock_post_data.return_value = True
+    assert (
+        handle_log(
+            file_name="tests/data/test_file_latin.json",
+            input_data=False,
+            log_analytics_workspace_id="foo",
+            log_analytics_workspace_key="bGBavCBrZXr=",
+            log_type="foo",
+        )
+        is True
+    )
+    assert mock_post_data.call_count == 1
+    assert mock_post_data.call_args[0][2] == '{"foo": "?"}'
+
+
 # test with reading input from file as json object. Json data is on multiple lines
 @patch("src.lib.forwarder.post_data")
 def test_handle_log_input_file_json_multiline_provided(mock_post_data):
@@ -231,7 +249,7 @@ def test_post_data_success(mock_requests):
     assert post_data(
         log_analytics_workspace_id="foo",
         log_analytics_workspace_key="bGBavCBrZXr=",
-        body={},
+        body='{"foo": "bar"}',
         log_type="foo",
     )
 
@@ -244,7 +262,31 @@ def test_post_data_failure(mock_requests):
         post_data(
             log_analytics_workspace_id="foo",
             log_analytics_workspace_key="bGBavCBrZXr=",
-            body={},
+            body='{"foo": "bar"}',
+            log_type="foo",
+        )
+        is False
+    )
+
+
+# test empty body
+@patch("src.lib.forwarder.requests")
+def test_post_data_empty_body(mock_requests):
+    mock_requests.post.return_value.status_code = 200
+    assert (
+        post_data(
+            log_analytics_workspace_id="foo",
+            log_analytics_workspace_key="bGBavCBrZXr=",
+            body=" ",
+            log_type="foo",
+        )
+        is False
+    )
+    assert (
+        post_data(
+            log_analytics_workspace_id="foo",
+            log_analytics_workspace_key="bGBavCBrZXr=",
+            body="",
             log_type="foo",
         )
         is False
