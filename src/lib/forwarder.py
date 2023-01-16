@@ -147,6 +147,8 @@ def build_signature(
 # Send the data to Sentinel
 def post_data(log_analytics_workspace_id, log_analytics_workspace_key, body, log_type):
 
+    body = body.encode("utf-8")
+
     if len(body.strip()) == 0:
         log.warning("No data to send to Azure Sentinel")
         return False
