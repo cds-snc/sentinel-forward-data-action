@@ -43,7 +43,7 @@ def process_file_contents(
     log_analytics_workspace_key,
     log_type,
 ):
-    with open(file_name, "r") as file:
+    with open(file_name, "r", encoding="utf-8") as file:
         # see if it is a json file object and the filename has a .json extension. The json object can be on 1 line or on multiple lines
         if file_name.endswith(".json"):
             json_object = json.load(file)
@@ -146,6 +146,11 @@ def build_signature(
 
 # Send the data to Sentinel
 def post_data(log_analytics_workspace_id, log_analytics_workspace_key, body, log_type):
+
+    if len(body.strip()) == 0:
+        log.warning("No data to send to Azure Sentinel")
+        return False
+
     method = "POST"
     content_type = "application/json"
     resource = "/api/logs"
@@ -160,7 +165,7 @@ def post_data(log_analytics_workspace_id, log_analytics_workspace_key, body, log
         content_type,
         resource,
     )
-    log.info(f"Body sent: {body}, length: {content_length}")
+    log.debug(f"Body sent: {body}, length: {content_length}")
     uri = (
         "https://"
         + log_analytics_workspace_id
@@ -178,7 +183,9 @@ def post_data(log_analytics_workspace_id, log_analytics_workspace_key, body, log
 
     response = requests.post(uri, data=body, headers=headers)
     if response.status_code >= 200 and response.status_code <= 299:
-        log.info(f"Response code: {response.status_code}, log type: {log_type}")
+        log.info(
+            f"Response code: {response.status_code}, log type: {log_type}, length: {content_length}"
+        )
         return True
     else:
         log.error(f"Response code: {response.status_code}, log type: {log_type}")
