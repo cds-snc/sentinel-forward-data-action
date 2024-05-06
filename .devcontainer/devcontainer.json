@@ -1,6 +1,6 @@
 {
 	"name": "Python 3",
-	"image": "mcr.microsoft.com/devcontainers/python:0-3.11",
+	"image": "mcr.microsoft.com/devcontainers/python:0-3.11@sha256:452e43dd2381de67191c53f7692433baba156ee9138ccfaed5124ff26c63eaed",
 	"extensions": [
 		"ms-python.python",
 		"ms-python.vscode-pylance",
@@ -9,8 +9,8 @@
 		"github.copilot"
 	],
 	"features": {
-		"ghcr.io/devcontainers-contrib/features/black:2": {},
-		"ghcr.io/devcontainers-contrib/features/flake8:2": {}
+		"ghcr.io/devcontainers-contrib/features/black:2@sha256:f44c7b2e3ac5444ec38abc4184b06900171e169b1c84cf6d73686deadf1611fb": {},
+		"ghcr.io/devcontainers-contrib/features/flake8:2@sha256:a089c6632517e55f763d15e8b3e52c0a8d33c04f5f267796a2ba8daa43b75e17": {}
 	},
 	"postCreateCommand": "pip install --user -r src/requirements.txt"
 }
