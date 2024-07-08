@@ -1,5 +1,5 @@
 logzero==1.7.0
 requests==2.32.2
 pytest==7.4.4
-flake8==6.0.
+flake8==6.0.0
 black==24.4.2
