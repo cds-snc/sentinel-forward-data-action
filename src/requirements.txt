@@ -1,2 +1,2 @@
 logzero==1.7.0
-requests==2.32.4
+requests==2.32.5
