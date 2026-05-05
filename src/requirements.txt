@@ -1,2 +1,4 @@
 logzero==1.7.0
-requests==2.32.4
+azure-monitor-ingestion>=1.0.0
+azure-identity>=1.15.0
+requests>=2.31.0
