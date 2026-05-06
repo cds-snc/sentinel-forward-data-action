@@ -1,26 +1,40 @@
 name: 'Forward github action data to Sentinel'
-description: 'Import data from a previous action into Microsoft Sentinel tables.'
+description: 'Import data from a previous action into Microsoft Sentinel tables. Supports both the Logs Ingestion API (v2) and the legacy Data Collector API (v1).'
 inputs:
   file_name:
     description: 'File that contains a list of outputs to be imported into the workspace'
     required: false
-    default: null 
+    default: null
   input_data:
-    description: 'Data from a previous action to be imported into the worspace'
+    description: 'Data from a previous action to be imported into the workspace'
+    required: false
+    default: null
+  # Logs Ingestion API (v2) inputs
+  dce_endpoint:
+    description: 'The Data Collection Endpoint (DCE) or DCR logs ingestion endpoint URL'
+    required: false
+    default: null
+  dcr_rule_id:
+    description: 'The immutable ID of the Data Collection Rule (DCR)'
+    required: false
+    default: null
+  stream_name:
+    description: 'The stream name in the DCR that represents the destination table (e.g. Custom-MyTable)'
+    required: false
+    default: null
+  # Data Collector API (v1) inputs
+  log_analytics_workspace_id:
+    description: 'The Log Analytics workspace ID'
+    required: false
+    default: null
+  log_analytics_workspace_key:
+    description: 'The Log Analytics workspace shared key'
     required: false
     default: null
   log_type:
-    description: 'The sentinel database to import the data into'
-    required: true
+    description: 'The name of the custom log table (without the _CL suffix)'
+    required: false
     default: null
-  log_analytics_workspace_id:
-    description:  'Workspace Id for the Log Analytics workspace.'
-    required: true
-    default: null 
-  log_analytics_workspace_key:
-    description:  'Workspace Key for the Log Analytics workspace.'
-    required: true
-    default: null 
 runs:
   using: 'docker'
   image: 'Dockerfile'
