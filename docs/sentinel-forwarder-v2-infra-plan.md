@@ -1,54 +1,70 @@
-# Sentinel Repo — Forwarder v2 Infrastructure Plan
+# Forwarder v2 Infrastructure Plan
 
-> **Purpose:** Create all Azure infrastructure in `cds-snc/sentinel` to support migrating
+> **Purpose:** Create all Azure infrastructure to support migrating
 > GitHub Actions workflows from the v1 Data Collector API to the v2 Logs Ingestion API
 > via `cds-snc/sentinel-forward-data-action`.
+>
+> Infrastructure is split across two repos:
+> - **`cds-snc/cds-azure-resources`** — App Registration (Azure AD)
+> - **`cds-snc/sentinel`** — DCE, DCRs, custom tables, and role assignments
 
 ---
 
 ## Architecture Overview
 
 ```
-GitHub Actions workflow
+GitHub Actions workflow (any cds-snc repo)
+  │
+  ├─ azure/login (OIDC) ──► Azure AD App Registration
+  │    └─ Flexible Federated Identity Credential (preview)
+  │       subject matches 'repo:cds-snc/*'  ← one credential covers all repos
   │
   └─ sentinel-forward-data-action (v2)
        │
-       ├─ AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET (org secrets)
-       │    └─► DefaultAzureCredential ──► Azure AD App Registration
-       │
-       ├─ DCE (Data Collection Endpoint) ◄── shared, one for all tables
-       │
-       └─ DCR (Data Collection Rule) ◄── one per log type / custom table
+       └─ DefaultAzureCredential (picks up OIDC token from azure/login)
             │
-            └─ Custom Table in Log Analytics Workspace
+            ├─ DCE (Data Collection Endpoint) ◄── shared, one for all tables
+            │       (managed in sentinel repo)
+            │
+            └─ DCR (Data Collection Rule) ◄── one per log type / custom table
+                 │   (managed in sentinel repo)
+                 │   (Monitoring Metrics Publisher role granted here)
+                 │
+                 └─ Custom Table in Log Analytics Workspace
 ```
 
 ---
 
-## Step 1 — App Registration + Client Secret
+# Part 1 — `cds-snc/cds-azure-resources` repo
 
-Create a dedicated App Registration with a client secret for the forwarder v2.
-Using a client secret instead of OIDC federated credentials avoids the
-**20 federated credentials per app registration limit** — important since 74+
-repos will use this action.
+This repo manages Azure AD resources only.
+
+## Step 1 — App Registration + Flexible Federated Identity Credential
+
+Create a dedicated App Registration with a **single flexible federated identity
+credential** that covers all `cds-snc` repos using a wildcard `matches` expression.
+This avoids the 20 federated credentials per app limit.
 
 ### Terraform resources
 
 ```hcl
 # App Registration
-resource "azuread_application" "sentinel_forwarder_v2" {
+resource "azuread_application_registration" "sentinel_forwarder_v2" {
   display_name = "sentinel-forwarder-v2-github-actions"
 }
 
 resource "azuread_service_principal" "sentinel_forwarder_v2" {
-  client_id = azuread_application.sentinel_forwarder_v2.client_id
+  client_id = azuread_application_registration.sentinel_forwarder_v2.client_id
 }
 
-# Client secret (rotate periodically — set end_date_relative or end_date)
-resource "azuread_application_password" "sentinel_forwarder_v2" {
-  application_id    = azuread_application.sentinel_forwarder_v2.id
-  display_name      = "sentinel-forwarder-v2-github-actions-secret"
-  end_date_relative = "8760h"  # 1 year — adjust to your rotation policy
+# Flexible Federated Identity Credential — one credential covers all cds-snc repos
+resource "azuread_application_flexible_federated_identity_credential" "github_oidc" {
+  application_id             = azuread_application_registration.sentinel_forwarder_v2.id
+  display_name               = "github-actions-cds-snc-all-repos"
+  description                = "OIDC for sentinel-forward-data-action across all cds-snc repos"
+  audience                   = "api://AzureADTokenExchange"
+  issuer                     = "https://token.actions.githubusercontent.com"
+  claims_matching_expression = "claims['sub'] matches 'repo:cds-snc/*'"
 }
 ```
 
@@ -56,13 +72,16 @@ resource "azuread_application_password" "sentinel_forwarder_v2" {
 
 | Value | Where to store |
 |-------|---------------|
-| `azuread_application.sentinel_forwarder_v2.client_id` | Org secret `SENTINEL_V2_AZURE_CLIENT_ID` |
-| `azuread_application_password.sentinel_forwarder_v2.value` | Org secret `SENTINEL_V2_AZURE_CLIENT_SECRET` |
+| `azuread_application_registration.sentinel_forwarder_v2.client_id` | Org secret `SENTINEL_V2_AZURE_CLIENT_ID` |
 | Azure AD tenant ID | Org secret `SENTINEL_V2_AZURE_TENANT_ID` |
+| Subscription ID (of the LAW) | Org secret `SENTINEL_V2_AZURE_SUBSCRIPTION_ID` |
+| `azuread_service_principal.sentinel_forwarder_v2.object_id` | Needed by `sentinel` repo for role assignments |
 
-> **Secret rotation:** Set a calendar reminder to rotate `SENTINEL_V2_AZURE_CLIENT_SECRET`
-> before it expires. You can create a second password resource before the first expires
-> to allow a zero-downtime rotation.
+---
+
+# Part 2 — `cds-snc/sentinel` repo
+
+This repo manages the DCE, DCRs, custom tables, and role assignments.
 
 ---
 
@@ -77,7 +96,6 @@ resource "azurerm_monitor_data_collection_endpoint" "sentinel_forwarder" {
   name                          = "dce-sentinel-forwarder-v2"
   resource_group_name           = var.resource_group_name     # same RG as LAW
   location                      = var.location                 # same region as LAW
-  kind                          = "Linux"                      # or omit for default
   public_network_access_enabled = true                         # GitHub Actions needs public access
 }
 ```
@@ -314,9 +332,19 @@ module "dcr_deployment_data" {
 
 ## Step 4 — Role Assignments
 
-Grant the app registration **Monitoring Metrics Publisher** on each DCR.
+Grant the app registration **Monitoring Metrics Publisher** on each **DCR**.
+No role assignment is needed on the DCE — the DCE is just the ingestion endpoint URL;
+authorization is checked at the DCR level.
+
+The service principal object ID comes from the `cds-azure-resources` repo output
+(or a data source / variable).
 
 ```hcl
+variable "sentinel_forwarder_v2_principal_id" {
+  description = "Object ID of the sentinel-forwarder-v2 service principal (from cds-azure-resources)"
+  type        = string
+}
+
 locals {
   dcr_ids = [
     module.dcr_ossf_scorecard.dcr_id,
@@ -330,7 +358,7 @@ resource "azurerm_role_assignment" "forwarder_v2_metrics_publisher" {
 
   scope                = each.value
   role_definition_name = "Monitoring Metrics Publisher"
-  principal_id         = azuread_service_principal.sentinel_forwarder_v2.object_id
+  principal_id         = var.sentinel_forwarder_v2_principal_id
 }
 ```
 
@@ -340,17 +368,17 @@ resource "azurerm_role_assignment" "forwarder_v2_metrics_publisher" {
 
 After `terraform apply`, set these org-level secrets in `cds-snc`:
 
-| Secret name | Source |
-|-------------|--------|
-| `SENTINEL_V2_AZURE_CLIENT_ID` | `azuread_application.sentinel_forwarder_v2.client_id` |
-| `SENTINEL_V2_AZURE_CLIENT_SECRET` | `azuread_application_password.sentinel_forwarder_v2.value` |
-| `SENTINEL_V2_AZURE_TENANT_ID` | Azure AD tenant ID |
-| `SENTINEL_DCE_ENDPOINT` | `azurerm_monitor_data_collection_endpoint.sentinel_forwarder.logs_ingestion_endpoint` |
-| `SENTINEL_DCR_RULE_ID_OSSF` | `module.dcr_ossf_scorecard.dcr_immutable_id` |
-| `SENTINEL_STREAM_NAME_OSSF` | `Custom-GitHubMetadata_OSSF_Scorecard_CL` |
-| `SENTINEL_DCR_RULE_ID_DEPLOYMENT` | `module.dcr_deployment_data.dcr_immutable_id` |
-| `SENTINEL_STREAM_NAME_DEPLOYMENT` | `Custom-CDS_Product_Deployment_Data_CL` |
-| *(add more per DCR as they are created)* | |
+| Secret name | Source | Set after |
+|-------------|--------|----------|
+| `SENTINEL_V2_AZURE_CLIENT_ID` | App registration client ID | `cds-azure-resources` apply |
+| `SENTINEL_V2_AZURE_TENANT_ID` | Azure AD tenant ID | `cds-azure-resources` apply |
+| `SENTINEL_V2_AZURE_SUBSCRIPTION_ID` | Subscription ID | `cds-azure-resources` apply |
+| `SENTINEL_DCE_ENDPOINT` | DCE logs ingestion endpoint | `sentinel` apply |
+| `SENTINEL_DCR_RULE_ID_OSSF` | `module.dcr_ossf_scorecard.dcr_immutable_id` | `sentinel` apply |
+| `SENTINEL_STREAM_NAME_OSSF` | `Custom-GitHubMetadata_OSSF_Scorecard_CL` | `sentinel` apply |
+| `SENTINEL_DCR_RULE_ID_DEPLOYMENT` | `module.dcr_deployment_data.dcr_immutable_id` | `sentinel` apply |
+| `SENTINEL_STREAM_NAME_DEPLOYMENT` | `Custom-CDS_Product_Deployment_Data_CL` | `sentinel` apply |
+| *(add more per DCR as they are created)* | | |
 
 > **Tip:** Consider using Terraform + GitHub provider to manage org secrets directly,
 > or output the values and set them manually / via `gh secret set`.
@@ -360,28 +388,38 @@ After `terraform apply`, set these org-level secrets in `cds-snc`:
 ## Execution Checklist
 
 ### Phase 1 — OSSF Scorecard (do first)
-- [ ] Create app registration + service principal + client secret
+
+**`cds-azure-resources` repo:**
+- [ ] Create app registration + service principal
+- [ ] Create flexible federated identity credential (`claims['sub'] matches 'repo:cds-snc/*'`)
+- [ ] `terraform plan` → review
+- [ ] `terraform apply`
+- [ ] Set org secrets: `SENTINEL_V2_AZURE_CLIENT_ID`, `SENTINEL_V2_AZURE_TENANT_ID`, `SENTINEL_V2_AZURE_SUBSCRIPTION_ID`
+
+**`sentinel` repo:**
 - [ ] Create DCE
 - [ ] Create custom table + DCR for `GitHubMetadata_OSSF_Scorecard`
 - [ ] Add role assignment (Monitoring Metrics Publisher on DCR)
 - [ ] `terraform plan` → review
 - [ ] `terraform apply`
-- [ ] Set org secrets in GitHub
+- [ ] Set org secrets: `SENTINEL_DCE_ENDPOINT`, `SENTINEL_DCR_RULE_ID_OSSF`, `SENTINEL_STREAM_NAME_OSSF`
+
+**Validation:**
 - [ ] Test: update `sentinel-forward-data-action` own `ossf-scorecard.yml` to v2
 - [ ] Validate: query `GitHubMetadata_OSSF_Scorecard_CL` in LAW for new v2 records
 - [ ] Pilot: convert 1-2 more repos (e.g. `cds-azure-resources`)
 - [ ] Rollout: batch-convert remaining OSSF repos
 
 ### Phase 2 — Deployment Data
-- [ ] Create custom table + DCR for `CDS_Product_Deployment_Data`
-- [ ] Add role assignment
+- [ ] (`sentinel` repo) Create custom table + DCR for `CDS_Product_Deployment_Data`
+- [ ] (`sentinel` repo) Add role assignment
 - [ ] `terraform apply`
 - [ ] Set org secrets (`SENTINEL_DCR_RULE_ID_DEPLOYMENT`, `SENTINEL_STREAM_NAME_DEPLOYMENT`)
 - [ ] Convert deployment workflows in 14 repos
 
 ### Phase 3 — Scanning & Vulnerability
-- [ ] Create custom tables + DCRs for remaining 5 log types
-- [ ] Add role assignments
+- [ ] (`sentinel` repo) Create custom tables + DCRs for remaining 5 log types
+- [ ] (`sentinel` repo) Add role assignments
 - [ ] `terraform apply`
 - [ ] Set secrets and convert `automatic-website-scanning` + `site-reliability-engineering`
 
@@ -393,14 +431,18 @@ After `terraform apply`, set these org-level secrets in `cds-snc`:
 
 ## Important Notes
 
-1. **Client secret auth** is used instead of OIDC federated credentials. Azure AD limits federated credentials to **20 per app registration** (confirmed [May 2026](https://learn.microsoft.com/en-us/entra/workload-id/workload-identity-federation-considerations)), which is insufficient for 74+ repos. A single client secret works across all repos via org-level GitHub secrets with no per-repo setup.
+1. **OIDC with Flexible Federated Identity Credentials.** A single `azuread_application_flexible_federated_identity_credential` with `claims['sub'] matches 'repo:cds-snc/*'` covers all repos in the org — no 20-credential limit issue, no client secret rotation. See [Terraform docs](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/application_flexible_federated_identity_credential) and [Microsoft docs](https://learn.microsoft.com/en-us/entra/workload-id/workload-identities-flexible-federated-identity-credentials?tabs=github).
 
-2. **Rotate the client secret** before it expires. Set `end_date_relative` in Terraform and a calendar reminder. For zero-downtime rotation, create a new password before deleting the old one.
+2. **Permissions are on the DCR, not the DCE.** The DCE is just the ingestion endpoint URL. Authorization is checked at the DCR level via the **Monitoring Metrics Publisher** role.
 
-3. **Custom table schemas must match the incoming data.** For OSSF, the scorecard JSON has nested objects — use `dynamic` type for those columns. Query existing v1 tables (`TableName_CL | getschema`) to derive schemas for other log types.
+3. **Infrastructure is split across two repos:**
+   - `cds-azure-resources` — App Registration, flexible FIC (Azure AD only)
+   - `sentinel` — DCE, DCRs, custom tables, role assignments (all monitoring infra)
 
-4. **The DCE must be in the same region as the Log Analytics Workspace.**
+4. **Custom table schemas must match the incoming data.** For OSSF, the scorecard JSON has nested objects — use `dynamic` type for those columns. Query existing v1 tables (`TableName_CL | getschema`) to derive schemas for other log types.
 
-5. **`stream_declaration` columns must match table columns exactly** — including `TimeGenerated`. If the incoming data doesn't have `TimeGenerated`, use a KQL transform: `source | extend TimeGenerated = now()`.
+5. **The DCE must be in the same region as the Log Analytics Workspace.**
 
-6. **Monitoring Metrics Publisher** is the minimum role needed. Don't use Contributor or broader roles.
+6. **`stream_declaration` columns must match table columns exactly** — including `TimeGenerated`. If the incoming data doesn't have `TimeGenerated`, use a KQL transform: `source | extend TimeGenerated = now()`.
+
+7. **Monitoring Metrics Publisher** is the minimum role needed. Don't use Contributor or broader roles.
