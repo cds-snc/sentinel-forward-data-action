@@ -27,9 +27,7 @@ def _fetch_oidc_token_file(audience="api://AzureADTokenExchange"):
     response.raise_for_status()
     token = response.json()["value"]
 
-    token_file = tempfile.NamedTemporaryFile(
-        mode="w", suffix=".token", delete=False
-    )
+    token_file = tempfile.NamedTemporaryFile(mode="w", suffix=".token", delete=False)
     token_file.write(token)
     token_file.close()
     return token_file.name
