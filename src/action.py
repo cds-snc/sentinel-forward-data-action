@@ -13,6 +13,9 @@ if __name__ == "__main__":
     dce_endpoint = os.environ.get("INPUT_DCE_ENDPOINT", False)
     dcr_rule_id = os.environ.get("INPUT_DCR_RULE_ID", False)
     stream_name = os.environ.get("INPUT_STREAM_NAME", False)
+    azure_client_id = os.environ.get("INPUT_AZURE_CLIENT_ID") or None
+    azure_tenant_id = os.environ.get("INPUT_AZURE_TENANT_ID") or None
+    azure_client_secret = os.environ.get("INPUT_AZURE_CLIENT_SECRET") or None
 
     # v1 inputs (Data Collector API)
     workspace_id = os.environ.get("INPUT_LOG_ANALYTICS_WORKSPACE_ID", False)
@@ -31,7 +34,16 @@ if __name__ == "__main__":
         elif has_v2:
             from lib.forwarder_v2 import handle_log
 
-            handle_log(file_name, input_data, dce_endpoint, dcr_rule_id, stream_name)
+            handle_log(
+                file_name,
+                input_data,
+                dce_endpoint,
+                dcr_rule_id,
+                stream_name,
+                client_id=azure_client_id,
+                tenant_id=azure_tenant_id,
+                client_secret=azure_client_secret,
+            )
         elif has_v1:
             from lib.forwarder import handle_log
 

@@ -10,6 +10,8 @@ from src.lib.forwarder_v2 import (
     convert_to_log_entries,
     process_file_to_entries,
     is_json,
+    _configure_azure_env,
+    _fetch_oidc_token_file,
 )
 
 
@@ -330,3 +332,101 @@ def test_handle_log_file_does_not_exist(mock_create_client):
         stream_name="Custom-Table",
     )
     assert result is False
+
+
+# test _configure_azure_env sets env vars for client secret flow
+@patch.dict("os.environ", {}, clear=True)
+def test_configure_azure_env_client_secret():
+    import os
+
+    _configure_azure_env("my-client-id", "my-tenant-id", "my-secret")
+    assert os.environ["AZURE_CLIENT_ID"] == "my-client-id"
+    assert os.environ["AZURE_TENANT_ID"] == "my-tenant-id"
+    assert os.environ["AZURE_CLIENT_SECRET"] == "my-secret"
+
+
+# test _configure_azure_env with OIDC (no client secret)
+@patch("src.lib.forwarder_v2._fetch_oidc_token_file")
+@patch.dict("os.environ", {}, clear=True)
+def test_configure_azure_env_oidc(mock_fetch_oidc):
+    import os
+
+    mock_fetch_oidc.return_value = "/tmp/fake-token-file"
+    _configure_azure_env("my-client-id", "my-tenant-id", None)
+    assert os.environ["AZURE_CLIENT_ID"] == "my-client-id"
+    assert os.environ["AZURE_TENANT_ID"] == "my-tenant-id"
+    assert os.environ["AZURE_FEDERATED_TOKEN_FILE"] == "/tmp/fake-token-file"
+    assert "AZURE_CLIENT_SECRET" not in os.environ
+
+
+# test _configure_azure_env with no secret and no OIDC available
+@patch("src.lib.forwarder_v2._fetch_oidc_token_file")
+@patch.dict("os.environ", {}, clear=True)
+def test_configure_azure_env_no_secret_no_oidc(mock_fetch_oidc):
+    import os
+
+    mock_fetch_oidc.return_value = None
+    _configure_azure_env("my-client-id", "my-tenant-id", None)
+    assert os.environ["AZURE_CLIENT_ID"] == "my-client-id"
+    assert os.environ["AZURE_TENANT_ID"] == "my-tenant-id"
+    assert "AZURE_CLIENT_SECRET" not in os.environ
+    assert "AZURE_FEDERATED_TOKEN_FILE" not in os.environ
+
+
+# test _fetch_oidc_token_file returns None when env vars missing
+@patch.dict("os.environ", {}, clear=True)
+def test_fetch_oidc_token_file_no_env():
+    result = _fetch_oidc_token_file()
+    assert result is None
+
+
+# test _fetch_oidc_token_file fetches and writes token
+@patch("src.lib.forwarder_v2.requests.get")
+@patch.dict(
+    "os.environ",
+    {
+        "ACTIONS_ID_TOKEN_REQUEST_URL": "https://token.actions.githubusercontent.com/xyz",
+        "ACTIONS_ID_TOKEN_REQUEST_TOKEN": "ghs_fake_token",
+    },
+    clear=True,
+)
+def test_fetch_oidc_token_file_success(mock_get):
+    import os
+
+    mock_response = MagicMock()
+    mock_response.json.return_value = {"value": "eyJhbGciOi.fake.token"}
+    mock_response.raise_for_status = MagicMock()
+    mock_get.return_value = mock_response
+
+    result = _fetch_oidc_token_file()
+    assert result is not None
+    with open(result, "r") as f:
+        assert f.read() == "eyJhbGciOi.fake.token"
+    os.unlink(result)
+
+    mock_get.assert_called_once_with(
+        "https://token.actions.githubusercontent.com/xyz&audience=api://AzureADTokenExchange",
+        headers={"Authorization": "bearer ghs_fake_token"},
+        timeout=10,
+    )
+
+
+# test handle_log passes credentials to create_client
+@patch("src.lib.forwarder_v2.create_client")
+def test_handle_log_passes_credentials(mock_create_client):
+    mock_client = MagicMock()
+    mock_create_client.return_value = mock_client
+    result = handle_log(
+        file_name=False,
+        input_data="test",
+        endpoint="https://dce.example.com",
+        dcr_rule_id="dcr-123",
+        stream_name="Custom-Table",
+        client_id="cid",
+        tenant_id="tid",
+        client_secret="secret",
+    )
+    assert result is True
+    mock_create_client.assert_called_once_with(
+        "https://dce.example.com", "cid", "tid", "secret"
+    )

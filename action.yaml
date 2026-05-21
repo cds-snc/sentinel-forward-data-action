@@ -22,6 +22,18 @@ inputs:
     description: 'The stream name in the DCR that represents the destination table (e.g. Custom-MyTable)'
     required: false
     default: null
+  azure_client_id:
+    description: 'The Azure AD application (client) ID for authentication'
+    required: false
+    default: null
+  azure_tenant_id:
+    description: 'The Azure AD tenant ID for authentication'
+    required: false
+    default: null
+  azure_client_secret:
+    description: 'The Azure AD client secret (optional, omit to use GitHub OIDC federated credentials)'
+    required: false
+    default: null
   # Data Collector API (v1) inputs
   log_analytics_workspace_id:
     description: 'The Log Analytics workspace ID'

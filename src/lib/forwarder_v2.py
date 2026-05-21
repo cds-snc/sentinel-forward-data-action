@@ -1,6 +1,8 @@
 import json
 import os
+import tempfile
 import logzero
+import requests
 from azure.core.exceptions import HttpResponseError
 from azure.identity import DefaultAzureCredential
 from azure.monitor.ingestion import LogsIngestionClient
@@ -9,10 +11,56 @@ logzero.json()
 log = logzero.logger
 
 
+# Fetch a GitHub Actions OIDC token and write it to a temporary file.
+# Returns the path to the token file, or None if OIDC is not available.
+def _fetch_oidc_token_file(audience="api://AzureADTokenExchange"):
+    request_url = os.environ.get("ACTIONS_ID_TOKEN_REQUEST_URL")
+    request_token = os.environ.get("ACTIONS_ID_TOKEN_REQUEST_TOKEN")
+    if not request_url or not request_token:
+        return None
+
+    response = requests.get(
+        f"{request_url}&audience={audience}",
+        headers={"Authorization": f"bearer {request_token}"},
+        timeout=10,
+    )
+    response.raise_for_status()
+    token = response.json()["value"]
+
+    token_file = tempfile.NamedTemporaryFile(mode="w", suffix=".token", delete=False)
+    token_file.write(token)
+    token_file.close()
+    return token_file.name
+
+
+# Configure Azure identity environment variables so DefaultAzureCredential
+# can authenticate.  Supports client-secret and GitHub OIDC federated flows.
+def _configure_azure_env(client_id, tenant_id, client_secret):
+    if client_id:
+        os.environ["AZURE_CLIENT_ID"] = client_id
+    if tenant_id:
+        os.environ["AZURE_TENANT_ID"] = tenant_id
+
+    if client_secret:
+        os.environ["AZURE_CLIENT_SECRET"] = client_secret
+    elif client_id and tenant_id:
+        # Attempt GitHub Actions OIDC federated credential flow
+        token_file = _fetch_oidc_token_file()
+        if token_file:
+            os.environ["AZURE_FEDERATED_TOKEN_FILE"] = token_file
+            log.info("Using GitHub Actions OIDC federated credential")
+        else:
+            log.warning(
+                "No client_secret and OIDC token request not available. "
+                "DefaultAzureCredential will attempt other credential types."
+            )
+
+
 # Create an authenticated LogsIngestionClient using DefaultAzureCredential.
-# In GitHub Actions: picks up OIDC token from azure/login.
-# Locally: picks up AZURE_TENANT_ID + AZURE_CLIENT_ID + AZURE_CLIENT_SECRET.
-def create_client(endpoint):
+# Accepts optional credential parameters; if provided, configures environment
+# variables so that DefaultAzureCredential can authenticate.
+def create_client(endpoint, client_id=None, tenant_id=None, client_secret=None):
+    _configure_azure_env(client_id, tenant_id, client_secret)
     credential = DefaultAzureCredential()
     return LogsIngestionClient(endpoint=endpoint, credential=credential)
 
@@ -87,6 +135,9 @@ def handle_log(
     endpoint,
     dcr_rule_id,
     stream_name,
+    client_id=None,
+    tenant_id=None,
+    client_secret=None,
 ):
     if endpoint is False or dcr_rule_id is False or stream_name is False:
         log.error(
@@ -99,7 +150,7 @@ def handle_log(
         log.error("Missing required input data or file name")
         return False
 
-    client = create_client(endpoint)
+    client = create_client(endpoint, client_id, tenant_id, client_secret)
     all_entries = []
 
     if input_data:
