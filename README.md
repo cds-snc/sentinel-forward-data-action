@@ -13,9 +13,11 @@ This action supports two APIs:
 
 The action performs its own GitHub Actions OIDC token exchange internally — no separate `azure/login` step is needed.
 
+> **Required:** the calling workflow must grant `id-token: write` permission. Without it, the GitHub OIDC token request env vars are not injected into the action's container and authentication will fail with `DefaultAzureCredential failed to retrieve a token`.
+
 ```yaml
 permissions:
-  id-token: write
+  id-token: write  # required for OIDC federated credentials
 
 steps:
   - name: "Post results to Sentinel"
