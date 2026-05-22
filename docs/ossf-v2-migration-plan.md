@@ -9,6 +9,7 @@ Convert the `ossf-scorecard.yml` workflow in this repo (and later all 57+ OSSF r
 ## Prerequisites (Azure / Terraform)
 
 Infrastructure changes are split across two repos:
+
 - **`cds-snc/cds-azure-resources`** — App Registration + flexible federated identity credential + DCE
 - **`cds-snc/sentinel`** — DCRs, custom tables, and role assignments
 
@@ -30,6 +31,7 @@ detailed execution plan.
 ### 5. Update `ossf-scorecard.yml`
 
 **Current (v1):**
+
 ```yaml
 - name: "Post results to Sentinel"
   uses: cds-snc/sentinel-forward-data-action@01db4a9203054ecdb60ff368c3cdfca71d62e85f
@@ -41,6 +43,7 @@ detailed execution plan.
 ```
 
 **Target (v2):**
+
 ```yaml
 - name: "Login to Azure"
   uses: azure/login@v2
@@ -59,6 +62,7 @@ detailed execution plan.
 ```
 
 **Additional workflow change — add OIDC permission:**
+
 ```yaml
 permissions:
   contents: read
@@ -66,27 +70,27 @@ permissions:
   pull-requests: read
   checks: read
   actions: read
-  id-token: write  # ← required for OIDC with azure/login
+  id-token: write # ← required for OIDC with azure/login
 ```
 
 ---
 
 ## Rollout Order
 
-| Phase | Scope | Action |
-|-------|-------|--------|
-| 1 | This repo (`sentinel-forward-data-action`) | Update workflow, verify data lands in new table |
-| 2 | 1-2 pilot repos (e.g. `cds-azure-resources`, `sre-bot`) | Confirm org secrets work cross-repo |
-| 3 | Remaining 55 OSSF-only repos | Batch PRs (can be scripted/Renovate) |
-| 4 | 17 custom-usage repos | Requires per-repo DCR/stream for each table |
+| Phase | Scope                                                   | Action                                          |
+| ----- | ------------------------------------------------------- | ----------------------------------------------- |
+| 1     | This repo (`sentinel-forward-data-action`)              | Update workflow, verify data lands in new table |
+| 2     | 1-2 pilot repos (e.g. `cds-azure-resources`, `sre-bot`) | Confirm org secrets work cross-repo             |
+| 3     | Remaining 55 OSSF-only repos                            | Batch PRs (can be scripted/Renovate)            |
+| 4     | 17 custom-usage repos                                   | Requires per-repo DCR/stream for each table     |
 
 ---
 
 ## Validation
 
-- [ ] After phase 1: query `GitHubMetadata_OSSF_Scorecard_CL` in Log Analytics to confirm v2 data arrives
-- [ ] Compare v1 vs v2 records side-by-side to verify schema parity
-- [ ] Monitor for OIDC / `azure/login` auth failures in Actions logs
+- [x] After phase 1: query `GitHubMetadata_OSSF_Scorecard_CL` in Log Analytics to confirm v2 data arrives
+- [x] Compare v1 vs v2 records side-by-side to verify schema parity
+- [x] Monitor for OIDC / `azure/login` auth failures in Actions logs
 
 ## Cleanup (after full rollout)
 

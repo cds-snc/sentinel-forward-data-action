@@ -1,41 +1,79 @@
-
 # Send data to Azure Sentinel Github-action
 
-A GitHub action that sends data to Azure Sentinel from a previous GitHub action. It can either take as inputs a file name or input data that is either plain text or json format. A Sentinel log_type or table name will need to be specified when using the action and the passed in data will be stored in the indicated table name. 
+A GitHub action that sends data to Azure Sentinel from a previous GitHub action. It can either take as inputs a file name or input data that is either plain text or json format. Data will be stored in the specified custom table.
 
+This action supports two APIs:
 
-### Usage
+- **v2 (Logs Ingestion API)** — recommended for new setups. Uses OIDC federated credentials and Data Collection Rules.
+- **v1 (Data Collector API)** — legacy. Uses workspace ID and shared key.
+
+---
+
+## v2 Usage (Logs Ingestion API)
+
+The action performs its own GitHub Actions OIDC token exchange internally — no separate `azure/login` step is needed.
 
 ```yaml
-     - name: "Post results to Sentinel"
-        uses: cds-snc/sentinel-forward-data-action@main
-        with:
-          file_name: file-name.json
-          input_data: "Data to be sent to Sentinel"
-          log_type: "TestData_CL"
-          log_analytics_workspace_id: ${{ secrets.LOG_ANALYTICS_WORKSPACE_ID }}
-          log_analytics_workspace_key: ${{ secrets.LOG_ANALYTICS_WORKSPACE_KEY }}
+permissions:
+  id-token: write
+
+steps:
+  - name: "Post results to Sentinel"
+    uses: cds-snc/sentinel-forward-data-action@main
+    with:
+      file_name: ossf-results-modified.json
+      dce_endpoint: ${{ secrets.SENTINEL_DCE_ENDPOINT }}
+      dcr_rule_id: ${{ secrets.SENTINEL_DCR_RULE_ID_OSSF }}
+      stream_name: ${{ secrets.SENTINEL_STREAM_NAME_OSSF }}
+      azure_client_id: ${{ secrets.SENTINEL_V2_AZURE_CLIENT_ID }}
+      azure_tenant_id: ${{ secrets.SENTINEL_V2_AZURE_TENANT_ID }}
 ```
 
-### Action inputs
+### v2 Inputs
 
-All inputs except log_type, log_analytics_workspace_id and log_analytics_workspace_key are **optional**. 
+| Name                  | Description                                                            | Required                                 |
+| --------------------- | ---------------------------------------------------------------------- | ---------------------------------------- |
+| `file_name`           | File to read and send to Sentinel (text or json format)                | No (provide `file_name` or `input_data`) |
+| `input_data`          | Inline data to send to Sentinel (text or json format)                  | No (provide `file_name` or `input_data`) |
+| `dce_endpoint`        | The Data Collection Endpoint (DCE) URL                                 | Yes                                      |
+| `dcr_rule_id`         | The immutable ID of the Data Collection Rule (DCR)                     | Yes                                      |
+| `stream_name`         | The stream name in the DCR (e.g. `Custom-MyTable_CL`)                  | Yes                                      |
+| `azure_client_id`     | The Azure AD application (client) ID                                   | Yes                                      |
+| `azure_tenant_id`     | The Azure AD tenant ID                                                 | Yes                                      |
+| `azure_client_secret` | Azure AD client secret (omit to use GitHub OIDC federated credentials) | No                                       |
 
+---
 
-| Name                          | Description      | Mandatory   |
-------------------------------- | -----------------|-------------|
-| `file_name`                   | File name that will be read by the github action and each line will be processed and sent to Sentinel. The file can be either text or json format.   |  False |  
-| `input_data`                  | Input data to be sent to Sentinel. The data can be either text or json format. | False |        
-| `log_type`                    | The table name in Sentinel that the data will be stored at.  | True |
-| `log_analytics_workspace_id`  | Sentinel workspace id that is currently stored in GitHub secrets. | True |            
-| `log_analytics_workspace_key` | Sentinel workspace key which is currently stored in GitHub secrets. | True |               
+## v1 Usage (Data Collector API — Legacy)
 
+```yaml
+steps:
+  - name: "Post results to Sentinel"
+    uses: cds-snc/sentinel-forward-data-action@main
+    with:
+      file_name: file-name.json
+      input_data: "Data to be sent to Sentinel"
+      log_type: "TestData"
+      log_analytics_workspace_id: ${{ secrets.LOG_ANALYTICS_WORKSPACE_ID }}
+      log_analytics_workspace_key: ${{ secrets.LOG_ANALYTICS_WORKSPACE_KEY }}
+```
 
+### v1 Inputs
+
+| Name                          | Description                                             | Required                                 |
+| ----------------------------- | ------------------------------------------------------- | ---------------------------------------- |
+| `file_name`                   | File to read and send to Sentinel (text or json format) | No (provide `file_name` or `input_data`) |
+| `input_data`                  | Inline data to send to Sentinel (text or json format)   | No (provide `file_name` or `input_data`) |
+| `log_type`                    | The custom log table name (without the `_CL` suffix)    | Yes                                      |
+| `log_analytics_workspace_id`  | Sentinel workspace ID                                   | Yes                                      |
+| `log_analytics_workspace_key` | Sentinel workspace shared key                           | Yes                                      |
+
+---
 
 ### Action Outputs
 
-| Name     | Description                | Default |
-| -------- | -------------------------- | ------- |
-| `None`   | This action does not provide outputs |         
+| Name   | Description                          | Default |
+| ------ | ------------------------------------ | ------- |
+| `None` | This action does not provide outputs |         |
 
-A sample GitHub action that uses a chained functionality can be found in ```.github/workflows/test_chained_actions_sentinel_forward.yml```
+A sample GitHub action that uses a chained functionality can be found in `.github/workflows/test_chained_actions_sentinel_forward.yml`
