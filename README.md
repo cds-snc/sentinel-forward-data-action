@@ -31,6 +31,18 @@ steps:
       azure_tenant_id: ${{ secrets.SENTINEL_V2_AZURE_TENANT_ID }}
 ```
 
+### Stream name format
+
+If the DCR is created using the tf module in the [sentinel repo](https://github.com/cds-snc/sentinel/tree/main/terraform-cds-snc-la/modules/dcr_custom_table), The `stream_name` input **must** be in the format `Custom-<TableName>_CL`, where `<TableName>_CL` is the exact name of the destination custom table in your Log Analytics workspace. The `Custom-` prefix is required by Azure for all user-defined streams, and `_CL` is the required suffix for custom tables.
+
+Example: to send data to a custom table named `GitHubMetadata_OSSF_Scorecard_v2_CL`, the stream name must be `Custom-GitHubMetadata_OSSF_Scorecard_v2_CL`.
+
+This string must literally match the stream key declared in the DCR's `streamDeclarations` and referenced in `dataFlows[].streams[]` / `outputStream`. The mapping from stream to destination table is by string match (with the `Custom-` prefix stripped) — there is no separate `tableName` field.
+
+References:
+- [Structure of a data collection rule (DCR) in Azure Monitor](https://learn.microsoft.com/en-us/azure/azure-monitor/data-collection/data-collection-rule-structure) — stream names must begin with `Custom-`
+- [Add or Delete Tables and Columns in Azure Monitor Logs](https://learn.microsoft.com/en-us/azure/azure-monitor/logs/create-custom-table) — custom tables have a `_CL` suffix
+
 ### v2 Inputs
 
 | Name                  | Description                                                            | Required                                 |
