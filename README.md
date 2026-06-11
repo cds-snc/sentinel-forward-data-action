@@ -33,7 +33,7 @@ steps:
 
 ### Stream name format
 
-The `stream_name` input **must** be in the format `Custom-<TableName>_CL`, where `<TableName>_CL` is the exact name of the destination custom table in your Log Analytics workspace. The `Custom-` prefix is required by Azure for all user-defined streams, and `_CL` is the required suffix for custom tables.
+If the DCR is created using the tf module in the [sentinel repo](https://github.com/cds-snc/sentinel/tree/main/terraform-cds-snc-la/modules/dcr_custom_table), The `stream_name` input **must** be in the format `Custom-<TableName>_CL`, where `<TableName>_CL` is the exact name of the destination custom table in your Log Analytics workspace. The `Custom-` prefix is required by Azure for all user-defined streams, and `_CL` is the required suffix for custom tables.
 
 Example: to send data to a custom table named `GitHubMetadata_OSSF_Scorecard_v2_CL`, the stream name must be `Custom-GitHubMetadata_OSSF_Scorecard_v2_CL`.
 
