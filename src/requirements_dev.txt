@@ -1,5 +1,5 @@
 logzero==1.7.0
-requests==2.33.0
-pytest==9.0.3
+requests==2.34.2
+pytest==9.1.1
 flake8==6.1.0
 black==26.5.1
